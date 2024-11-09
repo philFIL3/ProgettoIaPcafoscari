@@ -256,3 +256,104 @@ void modMulti() {
         }
     } while(1);
 }
+
+// ====== GESTIONE MENU ======
+int mostraMenu(Menu menu) {
+    int scelta = 0;
+    char input[10];
+
+    do {
+        pulisci();
+        frame(menu.titolo);
+        
+        // Mostra opzioni
+        for(int i = 0; i<menu.num_opzioni; i++){
+            printf("   %d. %s\n\n", i + 1, menu.opzioni[i]);
+        }
+
+        printf("Scegli un'opzione (1-%d):", menu.num_opzioni);
+        fgets(input, sizeof(input), stdin);
+        scelta = atoi(input);
+        
+    } 
+    while(scelta < 1 || scelta > menu.num_opzioni);
+
+    return scelta;
+}
+
+void iniziaPartita() {
+    char scelta;
+    Giocatore giocatore = {"", ""};
+
+    do {
+        pulisci();
+        frame("NUOVA PARTITA");
+        printf("Scegli la modalità di gioco:\n\n");
+        printf("a. Singolo\n");
+        printf("b. Multi-giocatore\n");
+        printf("\n\nQ - Esci\n\n");
+        
+        scelta = leggiChar();
+        
+        switch(scelta) {
+            case 'a':
+                modSingolo(&giocatore);
+                break;
+                
+            case 'b':
+                modMulti();
+                break;
+                
+            case 'q':
+                return;
+        }
+    } while(1);
+}
+
+void mostraRegole(){
+    pulisci();
+    frame("REGOLE DEL GIOCO");
+    printf("Queste sono le regole del gioco...\n");
+    // implementare regole
+    getchar();
+}
+
+void mostraPunteggi(){
+    pulisci();
+    frame("PUNTEGGI");
+    printf("Punteggi in via di sviluppo...\n");
+    printf("\nPremi INVIO per tornare al menu principale...");
+    // implementare punteggi
+    getchar();
+}
+
+void credits() {
+    Progetto progetto = {
+        .sviluppatori = {
+            {"Antonio", "Roncalli", "123456"},
+            {"Filippo", "Pegoraro", "123455"},
+            {"Melania", "Cognome", "123454"},
+            {"Rachele", "Coralli", "870960"}
+        },
+        .num_dev = 4,
+        .nome_progetto = NOME_GIOCO,
+        .anno = ANNO
+    };
+
+    pulisci();
+    frame("CREDITI");
+    testoCentrato("Sviluppatori:\n\n");
+
+    for (int i = 0; i < progetto.num_dev; i++) {
+        testoCentrato("%s %s - %s", 
+                    progetto.sviluppatori[i].nome, 
+                    progetto.sviluppatori[i].cognome, 
+                    progetto.sviluppatori[i].matricola);
+    }
+
+    printf("\n\n");
+    testoCentrato("Progetto: %s (%d)", progetto.nome_progetto, progetto.anno);
+    
+    printf("\n\nPremi INVIO per tornare al menu principale...");
+    getchar(); 
+}
