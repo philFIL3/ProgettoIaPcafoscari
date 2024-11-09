@@ -64,12 +64,16 @@ typedef struct{ // da finire di implementare
 
 // ====== FUNZIONI UTILITY ======
 // -- Schermo --
-void delay(int ms) {
+void delay() { // Funzione di delay per simulare caricamenti (500 ms)
 #ifdef _WIN32
-    Sleep(ms);
+    Sleep(500); 
 #else
-    usleep(ms * 1000);
+    usleep(500000);
 #endif
+}
+
+void pulisci(){ // pulisce il terminale
+    system(CLEAR);
 }
 
 void pulisci() {
