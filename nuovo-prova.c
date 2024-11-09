@@ -357,3 +357,43 @@ void credits() {
     printf("\n\nPremi INVIO per tornare al menu principale...");
     getchar(); 
 }
+
+int main(){
+    Menu menuPrincipale = {
+        "GIOCO DI CARTE",
+        {
+            "Nuova Partita",
+            "Regole",
+            "Punteggi",
+            "Credits",
+            "Esci"
+        },
+        5
+    };
+    
+     int scelta;
+        do {
+            scelta = mostraMenu(menuPrincipale);
+            
+            switch(scelta) {
+                case 1:
+                    iniziaPartita();
+                    break;
+                case 2:
+                    mostraRegole();
+                    break;
+                case 3:
+                    mostraPunteggi();
+                    break;
+                case 4:
+                    credits();
+                    break;
+                case 5:
+                    pulisci();
+                    testoCentrato("Grazie per aver giocato!");
+                    return 0;
+            }
+        } while(1);
+        
+        return 0;
+}
