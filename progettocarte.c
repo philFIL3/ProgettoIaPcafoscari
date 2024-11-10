@@ -6,6 +6,7 @@
 #define NUMEROCARTA 13
 #define MINGIOCATORI 2
 #define MAXGIOCATORI 20
+#define PUNTIVITA 2
 
 
 // definizione struttura carta
@@ -19,8 +20,8 @@ typedef struct carte Carte; // nuovo nome di tipo per struct carte
 void new_mazzo(Carte * const Mazzo_iterato, const char * Array_numero_carta[],
                const char * Array_Seme[]);
 void mischia_mazzo(Carte * const Mazzo_iterato);
-void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori);   //aggiunto int numero_giocatori
-int scegli_giocatore(int numero_giocatori); // per scegliere il primo giocatore
+void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int punti_vita[], int *punti_sul_campo);   
+int scegli_giocatore(int numero_giocatori); 
 
 int main(void)
 {
@@ -45,6 +46,7 @@ int main(void)
     // chiede il numero di giocatori
     printf("Inserire il numero di giocatori (da %d a %d): ", MINGIOCATORI, MAXGIOCATORI);
     scanf("%d", &numero_giocatori);
+    printf("\n");
 
     if(numero_giocatori<MINGIOCATORI || numero_giocatori>MAXGIOCATORI) {
         printf("Il numero di giocatori non è valido!!\n");
@@ -52,13 +54,21 @@ int main(void)
         return 1;
     }
 
-	distribuisci(mazzo, numero_giocatori); // distribuisci le carte
+    // assegna 2 punti vita iniziali ai giocatori
+    int punti_vita [MAXGIOCATORI];
+    for(int i=0; i<numero_giocatori; i++) {
+        punti_vita[i]=PUNTIVITA;
+    }
+    
+    int punti_sul_campo=0;  // tiene conto dei punti sul campo
+    distribuisci(mazzo, numero_giocatori, punti_vita, &punti_sul_campo); // distribuisci le carte
 
     // sceglie il primo giocatore random
     int primo_giocatore = scegli_giocatore(numero_giocatori);
-    printf("Il primo giocatore è il giocatore numero %d\n", primo_giocatore+1);
+    printf("Il primo giocatore è il giocatore %d\n", primo_giocatore+1);
 
     free(mazzo);
+    mazzo=NULL; // azzera il puntatore
 
     return 0;
 }
@@ -86,12 +96,12 @@ void mischia_mazzo(Carte * const Mazzo_iterato)
 }
 
 // distribuisci le carte
-void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori)
+void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int punti_vita[], int *punti_sul_campo)
 {
     int carte_distribuite = 0;
 
     for (int i = 0; i < numero_giocatori; ++i){
-        printf("Il giocatore numero %d riceve: \n", i+1);
+        printf("Il giocatore %d ha %d punti vita iniziali e riceve: \n", i+1, punti_vita[i]);
         printf("Carta coperta: %s di %s\n", Mazzo_iterato[carte_distribuite].numero_carta, Mazzo_iterato[carte_distribuite].seme);
         carte_distribuite++;
         printf("Carta scoperta: %s di %s\n", Mazzo_iterato[carte_distribuite].numero_carta, Mazzo_iterato[carte_distribuite].seme);
