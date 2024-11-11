@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
-#define MAZZOCARTE 52
-#define NUMEROCARTA 13
+#define MAZZOCARTE 40
+#define NUMEROCARTA 10
 #define MINGIOCATORI 2
 #define MAXGIOCATORI 20
 #define PUNTIVITA 2
@@ -22,6 +23,7 @@ void new_mazzo(Carte * const Mazzo_iterato, const char * Array_numero_carta[],
 void mischia_mazzo(Carte * const Mazzo_iterato);
 void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int punti_vita[], int *punti_sul_campo);   
 int scegli_giocatore(int numero_giocatori); 
+void effetto_carte (const Carte carta, int giocatore_corrente, int numero_giocatori, int punti_vita[], int *punti_sul_campo);
 
 int main(void)
 {
@@ -32,7 +34,7 @@ int main(void)
     }
 
 // inizializza gli array di puntatori dei semi e del numero
-	const char *numero_carta[] = { "Asso", "Due", "Tre", "Quattro", "Cinque", "Sei", "Sette", "Otto", "Nove", "Dieci", "Jack", "Regina", "Re"};
+	const char *numero_carta[] = { "Asso", "Due", "Tre", "Quattro", "Cinque", "Sei", "Sette", "Jack", "Regina", "Re"};
 	const char *seme[] = {"Picche", "Quadri", "Cuori", "Fiori"};
 
 	srand(time(NULL)); /* se usassimo rand() la combinazione sarC  la stessa per ogni iterazione, con srand inizializziamo una iterazione randomica unica ogni qual volta che avviamo il programma, (time(NULL) serve per randomizzare l'iterazione di srand()*/
@@ -105,15 +107,48 @@ void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int p
         printf("Carta coperta: %s di %s\n", Mazzo_iterato[carte_distribuite].numero_carta, Mazzo_iterato[carte_distribuite].seme);
         carte_distribuite++;
         printf("Carta scoperta: %s di %s\n", Mazzo_iterato[carte_distribuite].numero_carta, Mazzo_iterato[carte_distribuite].seme);
+        effetto_carte(Mazzo_iterato[carte_distribuite], i, numero_giocatori, punti_vita, punti_sul_campo);
         carte_distribuite++;
+
+         // controlla se giocatore non ha più punti vita
+        if(punti_vita[i]<=0) {
+            printf("Il giocatore %d è eliminato\n", i+1);
+            punti_vita[i]=0;
+        }
         printf("\n");
     }
-// to do, ridurre il numero di carte nell'array in base ai numeri di giocatori
-//cancellare poi il mazzo per risparmiare memoria
-	/*size_t i;
-	for (i = 0; i < 2; ++i) {
-		printf("%s di %s\n", Mazzo_iterato[i].numero_carta, Mazzo_iterato[i].seme);
-	}*/
+}
+
+// applica effetto delle carte
+void effetto_carte(const Carte carta, int giocatore_corrente, int numero_giocatori, int punti_vita[], int *punti_sul_campo)
+{
+    if (strcmp(carta.numero_carta, "Due") == 0 || strcmp(carta.numero_carta, "Tre") == 0 || strcmp(carta.numero_carta, "Quattro") == 0 || strcmp(carta.numero_carta, "Cinque") == 0 || strcmp(carta.numero_carta, "Sei") == 0) {
+        printf("Non succede nulla. Si procede con il prossimo turno\n");
+        return;
+    }
+
+    if (strcmp(carta.numero_carta, "Sette") == 0) {
+        int giocatore_successivo = (giocatore_corrente+1) % numero_giocatori;
+        printf("Il giocatore %d forza il giocatore %d a scoprire ed applicare l'effetto della sua carta coperta\n", giocatore_corrente+1, giocatore_successivo+1);
+    } else if (strcmp(carta.numero_carta, "Jack") == 0) {
+        int giocatore_precedente = (giocatore_corrente-1+numero_giocatori) % numero_giocatori;
+        punti_vita[giocatore_precedente]++;
+        printf("Il giocatore %d dà 1 punto vita al giocatore %d\n", giocatore_corrente+1, giocatore_precedente+1);
+    } else if (strcmp(carta.numero_carta, "Regina") == 0) {
+        int giocatore_successivo = (giocatore_corrente+2) % numero_giocatori;
+        punti_vita[giocatore_successivo]++;
+        printf("Il giocatore %d dà 1 punto vita al giocatore %d\n", giocatore_corrente+1, giocatore_successivo+1);
+    } else if (strcmp(carta.numero_carta, "Asso") == 0) {
+        punti_vita[giocatore_corrente]--;
+        (*punti_sul_campo)++;
+        printf("Il giocatore %d perde 1 punto vita, che viene lasciato sul campo di gioco\n", giocatore_corrente+1);
+        printf("Punti sul campo di gioco: %d\n", *punti_sul_campo);
+    } else if (strcmp(carta.numero_carta, "Re") == 0) {
+        punti_vita[giocatore_corrente] += *punti_sul_campo;
+        printf("Il giocatore %d riceve %d punti vita presenti sul campo di gioco\n", giocatore_corrente+1, *punti_sul_campo);
+        
+        *punti_sul_campo=0; // resetta i punti sul campo
+    } 
 }
 
 // scegli il primo giocatore random
