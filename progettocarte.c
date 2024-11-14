@@ -56,6 +56,10 @@ int main(void)
         return 1;
     }
 
+    // sceglie il primo giocatore random
+    int primo_giocatore = scegli_giocatore(numero_giocatori);
+    printf("Il primo giocatore è il giocatore %d\n", primo_giocatore+1);
+
     // assegna 2 punti vita iniziali ai giocatori
     int punti_vita [MAXGIOCATORI];
     for(int i=0; i<numero_giocatori; i++) {
@@ -64,10 +68,6 @@ int main(void)
     
     int punti_sul_campo=0;  // tiene conto dei punti sul campo
     distribuisci(mazzo, numero_giocatori, punti_vita, &punti_sul_campo); // distribuisci le carte
-
-    // sceglie il primo giocatore random
-    int primo_giocatore = scegli_giocatore(numero_giocatori);
-    printf("Il primo giocatore è il giocatore %d\n", primo_giocatore+1);
 
     free(mazzo);
     mazzo=NULL; // azzera il puntatore
@@ -103,7 +103,7 @@ void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int p
     int carte_distribuite = 0;
 
     for (int i = 0; i < numero_giocatori; ++i){
-        printf("Il giocatore %d ha %d punti vita iniziali e riceve: \n", i+1, punti_vita[i]);
+        printf("\nIl giocatore %d ha %d punti vita iniziali e riceve: \n", i+1, punti_vita[i]);
         printf("Carta coperta: %s di %s\n", Mazzo_iterato[carte_distribuite].numero_carta, Mazzo_iterato[carte_distribuite].seme);
         carte_distribuite++;
         printf("Carta scoperta: %s di %s\n", Mazzo_iterato[carte_distribuite].numero_carta, Mazzo_iterato[carte_distribuite].seme);
@@ -145,7 +145,14 @@ void effetto_carte(const Carte carta, int giocatore_corrente, int numero_giocato
         printf("Punti sul campo di gioco: %d\n", *punti_sul_campo);
     } else if (strcmp(carta.numero_carta, "Re") == 0) {
         punti_vita[giocatore_corrente] += *punti_sul_campo;
-        printf("Il giocatore %d riceve %d punti vita presenti sul campo di gioco\n", giocatore_corrente+1, *punti_sul_campo);
+        // distingue i casi in cui ho e non ho punti sul campo 
+        if (*punti_sul_campo<=0) {
+            printf("Non ci sono punti sul campo di gioco, quindi il giocatore %d non riceve alcun punto\n", giocatore_corrente+1);
+        } else if (*punti_sul_campo==1) {  // caso in cui ce n'è solo uno
+           printf("Il giocatore %d riceve %d punto vita presente sul campo di gioco\n", giocatore_corrente+1, *punti_sul_campo); 
+        } else if (*punti_sul_campo>1) {  
+            printf("Il giocatore %d riceve %d punti vita presenti sul campo di gioco\n", giocatore_corrente+1, *punti_sul_campo);
+        }
         
         *punti_sul_campo=0; // resetta i punti sul campo
     } 
