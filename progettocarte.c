@@ -18,10 +18,9 @@ struct carte {
 typedef struct carte Carte; // nuovo nome di tipo per struct carte
 
 // prototipi
-void new_mazzo(Carte * const Mazzo_iterato, const char * Array_numero_carta[],
-               const char * Array_Seme[]);
+void new_mazzo(Carte * const Mazzo_iterato, const char * Array_numero_carta[], const char * Array_Seme[]);
 void mischia_mazzo(Carte * const Mazzo_iterato);
-void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int punti_vita[], int *punti_sul_campo);   
+void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int punti_vita[], int *punti_sul_campo, int prima_mano);   
 int scegli_giocatore(int numero_giocatori); 
 void effetto_carte (const Carte carta, int giocatore_corrente, int numero_giocatori, int punti_vita[], int *punti_sul_campo);
 
@@ -67,7 +66,7 @@ int main(void)
     }
     
     int punti_sul_campo=0;  // tiene conto dei punti sul campo
-    distribuisci(mazzo, numero_giocatori, punti_vita, &punti_sul_campo); // distribuisci le carte
+    distribuisci(mazzo, numero_giocatori, punti_vita, &punti_sul_campo, 1); // distribuisci le carte
 
     free(mazzo);
     mazzo=NULL; // azzera il puntatore
@@ -98,7 +97,7 @@ void mischia_mazzo(Carte * const Mazzo_iterato)
 }
 
 // distribuisci le carte
-void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int punti_vita[], int *punti_sul_campo)
+void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int punti_vita[], int *punti_sul_campo, int prima_mano)
 {
     int carte_distribuite = 0;
 
@@ -107,7 +106,12 @@ void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int p
         printf("Carta coperta: %s di %s\n", Mazzo_iterato[carte_distribuite].numero_carta, Mazzo_iterato[carte_distribuite].seme);
         carte_distribuite++;
         printf("Carta scoperta: %s di %s\n", Mazzo_iterato[carte_distribuite].numero_carta, Mazzo_iterato[carte_distribuite].seme);
-        effetto_carte(Mazzo_iterato[carte_distribuite], i, numero_giocatori, punti_vita, punti_sul_campo);
+        
+        // fa applicare l'effetto delle carte solo se non è la prima mano
+        if(!prima_mano){
+            effetto_carte(Mazzo_iterato[carte_distribuite], i, numero_giocatori, punti_vita, punti_sul_campo);
+        }
+
         carte_distribuite++;
 
          // controlla se giocatore non ha più punti vita
@@ -126,9 +130,9 @@ void effetto_carte(const Carte carta, int giocatore_corrente, int numero_giocato
         printf("Non succede nulla. Si procede con il prossimo turno\n");
         return;
     }
-
+    
     if (strcmp(carta.numero_carta, "Sette") == 0) {
-        int giocatore_successivo = (giocatore_corrente+1) % numero_giocatori;
+        int giocatore_successivo = (giocatore_corrente+1) % numero_giocatori;        
         printf("Il giocatore %d forza il giocatore %d a scoprire ed applicare l'effetto della sua carta coperta\n", giocatore_corrente+1, giocatore_successivo+1);
     } else if (strcmp(carta.numero_carta, "Jack") == 0) {
         int giocatore_precedente = (giocatore_corrente-1+numero_giocatori) % numero_giocatori;
@@ -145,12 +149,12 @@ void effetto_carte(const Carte carta, int giocatore_corrente, int numero_giocato
         printf("Punti sul campo di gioco: %d\n", *punti_sul_campo);
     } else if (strcmp(carta.numero_carta, "Re") == 0) {
         punti_vita[giocatore_corrente] += *punti_sul_campo;
-        // distingue i casi in cui ho e non ho punti sul campo 
+         // distingue i casi in cui ho e non ho punti sul campo 
         if (*punti_sul_campo<=0) {
             printf("Non ci sono punti sul campo di gioco, quindi il giocatore %d non riceve alcun punto\n", giocatore_corrente+1);
         } else if (*punti_sul_campo==1) {  // caso in cui ce n'è solo uno
            printf("Il giocatore %d riceve %d punto vita presente sul campo di gioco\n", giocatore_corrente+1, *punti_sul_campo); 
-        } else if (*punti_sul_campo>1) {  
+        } else if (*punti_sul_campo>1) {
             printf("Il giocatore %d riceve %d punti vita presenti sul campo di gioco\n", giocatore_corrente+1, *punti_sul_campo);
         }
         
