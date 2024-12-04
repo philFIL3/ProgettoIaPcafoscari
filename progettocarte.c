@@ -129,7 +129,7 @@ void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int p
     }
 }
 
-// applica effetto delle carte
+// applica l'effetto delle carte
 void effetto_carte(const Carte carta, int giocatore_corrente, int numero_giocatori, int punti_vita[], int *punti_sul_campo)
 {
     if (strcmp(carta.numero_carta, "Due") == 0 || strcmp(carta.numero_carta, "Tre") == 0 || strcmp(carta.numero_carta, "Quattro") == 0 || strcmp(carta.numero_carta, "Cinque") == 0 || strcmp(carta.numero_carta, "Sei") == 0) {
@@ -169,6 +169,7 @@ void effetto_carte(const Carte carta, int giocatore_corrente, int numero_giocato
 }
 
 // scegli il primo giocatore random
+//TO DO: ALGORITMO PER I TURNI
 int scegli_giocatore(int numero_giocatori) {
     return rand() % numero_giocatori;
 }
