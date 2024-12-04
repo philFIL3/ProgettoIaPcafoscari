@@ -20,9 +20,10 @@ typedef struct carte Carte; // nuovo nome di tipo per struct carte
 // prototipi
 void new_mazzo(Carte * const Mazzo_iterato, const char * Array_numero_carta[], const char * Array_Seme[]);
 void mischia_mazzo(Carte * const Mazzo_iterato);
-void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int punti_vita[], int *punti_sul_campo, int prima_mano);   
+void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int punti_vita[], int *punti_sul_campo, int prima_mano, Carte carte_scoperte[]);   
 int scegli_giocatore(int numero_giocatori); 
 void effetto_carte (const Carte carta, int giocatore_corrente, int numero_giocatori, int punti_vita[], int *punti_sul_campo);
+void fasi(Carte *const mazzo, int numero_giocatori, int punti_vita[], int *punti_sul_campo, Carte carte_scoperte[]);
 
 int main(void)
 {
@@ -66,7 +67,10 @@ int main(void)
     }
     
     int punti_sul_campo=0;  // tiene conto dei punti sul campo
-    distribuisci(mazzo, numero_giocatori, punti_vita, &punti_sul_campo, 1); // distribuisci le carte
+    Carte carte_scoperte[MAXGIOCATORI];  // salva le carte scoperte
+    distribuisci(mazzo, numero_giocatori, punti_vita, &punti_sul_campo, 1, carte_scoperte); // distribuisce le carte
+
+    fasi(mazzo, numero_giocatori, punti_vita, &punti_sul_campo, carte_scoperte);  // inizia le fasi
 
     free(mazzo);
     mazzo=NULL; // azzera il puntatore
@@ -97,7 +101,7 @@ void mischia_mazzo(Carte * const Mazzo_iterato)
 }
 
 // distribuisci le carte
-void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int punti_vita[], int *punti_sul_campo, int prima_mano)
+void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int punti_vita[], int *punti_sul_campo, int prima_mano, Carte carte_scoperte[])
 {
     int carte_distribuite = 0;
 
@@ -105,6 +109,8 @@ void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int p
         printf("\nIl giocatore %d ha %d punti vita iniziali e riceve: \n", i+1, punti_vita[i]);
         printf("Carta coperta: %s di %s\n", Mazzo_iterato[carte_distribuite].numero_carta, Mazzo_iterato[carte_distribuite].seme);
         carte_distribuite++;
+
+        carte_scoperte[i] = Mazzo_iterato[carte_distribuite];
         printf("Carta scoperta: %s di %s\n", Mazzo_iterato[carte_distribuite].numero_carta, Mazzo_iterato[carte_distribuite].seme);
         
         // fa applicare l'effetto delle carte solo se non è la prima mano
@@ -127,7 +133,7 @@ void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int p
 void effetto_carte(const Carte carta, int giocatore_corrente, int numero_giocatori, int punti_vita[], int *punti_sul_campo)
 {
     if (strcmp(carta.numero_carta, "Due") == 0 || strcmp(carta.numero_carta, "Tre") == 0 || strcmp(carta.numero_carta, "Quattro") == 0 || strcmp(carta.numero_carta, "Cinque") == 0 || strcmp(carta.numero_carta, "Sei") == 0) {
-        printf("Non succede nulla. Si procede con il prossimo turno\n");
+        printf("Non succede nulla\n");
         return;
     }
     
@@ -165,4 +171,75 @@ void effetto_carte(const Carte carta, int giocatore_corrente, int numero_giocato
 // scegli il primo giocatore random
 int scegli_giocatore(int numero_giocatori) {
     return rand() % numero_giocatori;
+}
+
+// definisce le fasi del gioco
+void fasi(Carte *const mazzo, int numero_giocatori, int punti_vita[], int *punti_sul_campo, Carte carte_scoperte[]) 
+{
+    int turno_corrente = 0;
+    int fase_corrente = 1;
+    int giocatori_attivi = numero_giocatori;
+
+    printf("Inizio della partita!!\n");
+
+    while(giocatori_attivi>1) {
+        printf("\n\nFase %d\n", fase_corrente);
+
+        for(int i=0; i<numero_giocatori; i++) {
+            // passa al giocatore successivo
+            while(punti_vita[turno_corrente]<=0) {
+                turno_corrente = (turno_corrente+1)%numero_giocatori;
+            }
+            printf("\nTurno del giocatore %d\n", turno_corrente+1);
+
+            printf("Il giocatore %d applica l'effetto della carta scoperta: %s di %s\n", turno_corrente+1, carte_scoperte[turno_corrente].numero_carta, carte_scoperte[turno_corrente].seme);
+            effetto_carte(carte_scoperte[turno_corrente], turno_corrente, numero_giocatori, punti_vita, punti_sul_campo);
+
+            // verifica se il giocatore corrente è eliminato
+            if(punti_vita[turno_corrente]<=0) {
+                printf("Il giocatore %d è eliminato\n", turno_corrente+1);
+                punti_vita[turno_corrente]=0;
+                giocatori_attivi--;
+                continue;
+            }
+
+            printf("La tua carta coperta è: %s di %s\n", mazzo[turno_corrente*2].numero_carta, mazzo[turno_corrente*2].seme);
+            printf("Vuoi scoprire la tua carta coperta? ");
+            char scelta[3];
+            scanf("%2s", scelta);
+
+            if(strcmp(scelta, "si")==0 || strcmp(scelta, "Si")==0 || strcmp(scelta, "sì")==0 || strcmp(scelta, "Sì")==0) {
+                printf("\nIl giocatore %d scopre la carta %s di %s e ne applica l'effetto\n", turno_corrente+1, mazzo[turno_corrente*2].numero_carta, mazzo[turno_corrente*2].seme);
+                effetto_carte(mazzo[turno_corrente*2], turno_corrente, numero_giocatori, punti_vita, punti_sul_campo);
+            } else if(strcmp(scelta, "no")==0 || strcmp(scelta, "No") ==0) {
+                printf("Il giocatore %d decide di non scoprire la sua carta coperta\n", turno_corrente+1);
+            } else {
+                printf("Scelta non valida\n");
+            }
+
+            do {
+                turno_corrente=(turno_corrente+1)%numero_giocatori;
+            } while (punti_vita[turno_corrente]<=0);
+            
+            // controlla se ci sono dei giocatori di eliminare alla fine della fase
+            printf("\nFine della fase %d\n", fase_corrente);
+            giocatori_attivi=0;
+            for(int i=0; i<numero_giocatori; i++) {
+                if(punti_vita[i]>0) {
+                    printf("Il giocatore %d ha ancora %d punti vita\n", i+1, punti_vita[i]);
+                    giocatori_attivi++;
+                } else {
+                    printf("Il giocatore %d ha terminato i punti vita ed è eliminato\n", i+1);
+                }
+            }
+        }
+        fase_corrente++;
+    }
+    printf("\nPartita terminata!!\n");
+    for(int i=0; i<numero_giocatori; i++) {
+        if(punti_vita[i]>0) {
+            printf("Ha vinto il giocatore %d\n", i+1);
+            break;
+        }
+    }
 }
