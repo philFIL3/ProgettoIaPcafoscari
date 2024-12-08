@@ -110,15 +110,15 @@ const wchar_t* simboli_semi(Seme seme){ //stampa con %ls - wprintf
     }
 }
 
-const wchar_t* nomi_carta(NomeCarta nome) {
-    switch (nome) {
+const wchar_t* nomi_carta(Tipocarta tipo) {
+    switch (tipo) {
         case ASSO: return L"A";
         case JACK: return L"J";
         case REGINA: return L"Q";
         case RE: return L"K";
         default: {
             static wchar_t buffer[3];
-            swprintf(buffer, sizeof(buffer)/sizeof(buffer[0]), L"%d", nome);
+            swprintf(buffer, sizeof(buffer)/sizeof(buffer[0]), L"%d", tipo);
             return buffer;
         }
     }
