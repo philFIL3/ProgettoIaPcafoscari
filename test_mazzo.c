@@ -22,7 +22,7 @@
 #define NUMEROCARTA 10
 #define MINGIOCATORI 2
 #define MAXGIOCATORI 20
-#define PUNTIVITA 10
+#define PUNTIVITA 2
 
 //--- UTILITY ---
 void pulisci(){ // pulisci schermo 
@@ -44,13 +44,44 @@ typedef enum {
 
 typedef enum {
     ASSO = 1, DUE, TRE, QUATTRO, CINQUE, SEI, SETTE, JACK, REGINA, RE
-} NomeCarta;
+} TipoCarta;
+
+typedef enum {
+    NULLO,      // nessun effetto
+    MAGIA,      // scopre la carta avversario
+    SUPPORTO,   // donare hp
+    TRAPPOLA,   // perde 1 hp sul campo
+    LADRO       // sottrae risorse
+    //SPECIALE, SCARTO...
+    
+} CategEffetto; // categoria di ogni effetto
 
 typedef struct {
-    NomeCarta nome;  // nome della carta
-    Seme seme;   // uno dei quattro semi
+    CategEffetto categoria;
+    void (*effetto)(int giocatore_corrente, int giocatore_target);
+} Effetto;
+
+typedef struct {
+    TipoCarta tipo;  // tipo della carta
+    Seme seme;      // uno dei quattro semi
     int valore_carta; // valore effettivo della carta
+    Effetto* effetto;
 } Carta; 
+
+typedef struct {
+    char id[MAXGIOCATORI];  // ?[non so se giusto] ID del giocatore, massimo fino a maxgiocatori(20)
+    int punti_vita;         // Punti vita attuali
+    Carta mano[2];      // Carte in mano (esempio con massimo 5 carte)
+    Carta coperta;
+    Carta scoperta;
+} Giocatore;
+
+typedef struct {
+    int num_giocatori;     // Numero di giocatori attivi
+    int punti_campo;       // Punti vita lasciati in campo
+    Giocatore giocatori[MAXGIOCATORI]; // Array di giocatori
+    Carta mazzo[MAZZOCARTE];  // guardare se modificare -> stato sulle carte disponibili
+} StatoGioco;
 
 
 //--- Funzioni ---
@@ -92,6 +123,76 @@ const wchar_t* nomi_carta(NomeCarta nome) {
         }
     }
 }
+
+// --- PROTOTIPI --- 
+void inizia_partita();
+void crea_mazzo(Carta mazzo[MAZZOCARTE]);
+void mescola_mazzo(Carta mazzo[MAZZOCARTE]);
+void distribuisci_carte(Carta mazzo[MAZZOCARTE], Giocatore giocatori[], int num_giocatori);
+
+//--- Funzioni ---
+void crea_mazzo(Carta mazzo[MAZZOCARTE]){
+    int i = 0;
+    for (int i_seme = FIORI; i_seme <= PICCHE; i_seme++){
+        for(int i_valore = ASSO; i_valore <= RE; i_valore++){
+
+            //se vogliamo assegnare il valore di J Q K a 8 (es. se con mana ecc, allora mettere if...)
+            //stessa cosa se vogliamo che A = 1 o 11
+            mazzo[i].tipo = i_valore; // tipo della carta (valore)
+            mazzo[i].seme = i_seme; // seme della carta
+            mazzo[i].valore_carta = i_valore; // valore della carta(1, 2, 3...)
+            i++;
+
+            // Allocazione e associazione degli effetti
+            Effetto *effetto_carta = malloc(sizeof(Effetto));
+            if (!effetto_carta) {
+                perror("Errore nell'allocazione di Effetto");
+                exit(EXIT_FAILURE);
+            }
+
+            switch (i_valore) {
+                case SETTE:
+                    effetto_carta->categoria = MAGIA;
+                    effetto_carta->effetto = effetto_scoperta;
+                    break;
+                case JACK:
+                    effetto_carta->categoria = SUPPORTO;
+                    effetto_carta->effetto = effetto_vita;
+                    break;
+                case REGINA:
+                    effetto_carta->categoria = SUPPORTO;
+                    effetto_carta->effetto = effetto_vita2;
+                    break;
+                case ASSO:
+                    effetto_carta->categoria = TRAPPOLA;
+                    effetto_carta->effetto = effetto_trappola;
+                    break;
+                case RE:
+                    effetto_carta->categoria = LADRO;
+                    effetto_carta->effetto = effetto_ladro;
+                    break;
+                default:
+                    effetto_carta->categoria = NULLO;
+                    effetto_carta->effetto = effetto_nullo;
+                    break;
+            }
+
+            mazzo[i].effetto = effetto_carta; // carta associata all'effetto
+            i++;
+        }
+    }
+}
+
+//importante per liberare memoria 
+void libera_mazzo(Carta mazzo[MAZZOCARTE]) {
+    for (int i = 0; i < MAZZOCARTE; i++) {
+        if (mazzo[i].effetto) {
+            free(mazzo[i].effetto);
+            mazzo[i].effetto = NULL;
+        }
+    }
+}
+
 void mostra_mazzo(Carta mazzo[MAZZOCARTE]){
     for (int i = 0; i < MAZZOCARTE; i++){
         wprintf(L"Carta: %ls %ls (valore: %d)\n",
