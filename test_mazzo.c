@@ -89,7 +89,7 @@ void crea_mazzo(Carta mazzo[MAZZOCARTE]){
     int i = 0;
     for (int i_seme = FIORI; i_seme <= PICCHE; i_seme++){
         for(int i_valore = ASSO; i_valore <= RE; i_valore++){
-            mazzo[i].nome = i_valore; // nome della carta (valore)
+            mazzo[i].tipo = i_valore; // tipo della carta (nome)
             mazzo[i].seme = i_seme; // seme della carta
             mazzo[i].valore_carta = i_valore; // valore della carta(1, 2, 3...)
             i++;
@@ -110,7 +110,7 @@ const wchar_t* simboli_semi(Seme seme){ //stampa con %ls - wprintf
     }
 }
 
-const wchar_t* nomi_carta(Tipocarta tipo) {
+const wchar_t* nomi_carta(TipoCarta tipo) {
     switch (tipo) {
         case ASSO: return L"A";
         case JACK: return L"J";
@@ -196,15 +196,81 @@ void libera_mazzo(Carta mazzo[MAZZOCARTE]) {
 void mostra_mazzo(Carta mazzo[MAZZOCARTE]){
     for (int i = 0; i < MAZZOCARTE; i++){
         wprintf(L"Carta: %ls %ls (valore: %d)\n",
-        nomi_carta(mazzo[i].nome), simboli_semi(mazzo[i].seme), mazzo[i].valore_carta);
+        nomi_carta(mazzo[i].tipo), simboli_semi(mazzo[i].seme), mazzo[i].valore_carta);
+    }
+}
+
+void mescola_mazzo(Carta mazzo[MAZZOCARTE]){ 
+    srand(time(NULL)); // generazione casuale
+    for(int i = 0; i < MAZZOCARTE; i++){ // 0 - MAZZOCARTE-1
+        int rand_i = rand() % MAZZOCARTE; 
+        Carta randomica = mazzo[i]; //la carta corrente viene spostata con una carta randomica (time null)
+        mazzo[i] = mazzo[rand_i];
+        mazzo[rand_i] = randomica;
+    }
+}
+
+// -- EFFETTI CARTE -- 
+void effetto_nullo(int giocatore_corrente, int giocatore_target) {
+    printf("Non succede nulla.\n");
+}
+
+void effetto_scoperta(int giocatore_corrente, StatoGioco *stato) { //giocatore successivo (+1)
+    int giocatore_successivo = (giocatore_corrente + 1) % stato->num_giocatori;
+    printf("Il giocatore %s forza il giocatore %s a scoprire e applicare l'effetto della sua carta coperta.\n", 
+           stato->giocatori[giocatore_corrente].id, stato->giocatori[giocatore_successivo].id);
+    attiva_effetto(stato->giocatori[giocatore_successivo].coperta, stato, giocatore_successivo, giocatore_successivo);
+}
+
+void effetto_vita(int giocatore_corrente, StatoGioco *stato) { //giocatore precedente (-1)
+    int giocatore_precedente = (giocatore_corrente - 1 + stato->num_giocatori) % stato->num_giocatori;
+    stato->giocatori[giocatore_precedente].punti_vita++;
+    printf("Il giocatore %s dà 1 punto vita al giocatore %s.\n", 
+           stato->giocatori[giocatore_corrente].id, stato->giocatori[giocatore_precedente].id);
+}
+
+void effetto_vita2(int giocatore_corrente, StatoGioco *stato) { // 2 giocatori successivi
+    int giocatore_successivo = (giocatore_corrente + 2) % stato->num_giocatori;
+    stato->giocatori[giocatore_successivo].punti_vita++;
+    printf("Il giocatore %s dà 1 punto vita al giocatore %s.\n", 
+           stato->giocatori[giocatore_corrente].id, stato->giocatori[giocatore_successivo].id);
+}
+
+void effetto_trappola(int giocatore_corrente, StatoGioco *stato) { // inganno
+    stato->giocatori[giocatore_corrente].punti_vita--;
+    stato->punti_campo++;
+    printf("Il giocatore %s perde 1 punto vita, che viene lasciato sul campo di gioco.\n", 
+           stato->giocatori[giocatore_corrente].id);
+    printf("Punti sul campo di gioco: %d\n", stato->punti_campo);
+}
+
+void effetto_ladro(int giocatore_corrente, StatoGioco *stato) { // piglia tutto
+    stato->giocatori[giocatore_corrente].punti_vita += stato->punti_campo;
+
+    if (stato->punti_campo == 0) {
+        printf("Non ci sono punti sul campo di gioco, quindi il giocatore %s non riceve alcun punto.\n", 
+               stato->giocatori[giocatore_corrente].id);
+    } else {
+        printf("Il giocatore %s riceve %d punti vita presenti sul campo di gioco.\n", 
+               stato->giocatori[giocatore_corrente].id, stato->punti_campo);
+    }
+
+    stato->punti_campo = 0; // Reset punti sul campo
+}
+
+void attiva_effetto(Carta carta, StatoGioco *stato, int giocatore_corrente, int giocatore_target) {
+    if (carta.effetto && carta.effetto->effetto != NULL) {
+        carta.effetto->effetto(giocatore_corrente, stato);
     }
 }
 
 void stampa_mazzo(){
-    Carta mazzo[MAZZOCARTE];    // inzia il mazzo carte (40)
+    Carta mazzo[MAZZOCARTE];    // inizia il mazzo carte (40)
     crea_mazzo(mazzo);          // creo il mazzo di mazzo
     mostra_mazzo(mazzo);         //mostro il mazzo (stampando)
 }
+
+
 
 int main(){
     pulisci();
