@@ -1,0 +1,230 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <string.h>
+#include <stdbool.h>
+#include <locale.h> // Per setlocale
+#include <wchar.h>  // Per wchar_t
+
+// Compatibilità Windows e Mac
+#ifdef _WIN32
+    #include <windows.h>
+    #define CLEAR "cls"
+    #define SLEEP(x) Sleep(x)
+    #define LOCALE setlocale(LC_ALL, ".UTF-8")
+#else
+    #include <unistd.h>
+    #define CLEAR "clear"
+    #define SLEEP(x) usleep((x) * 1000)
+    #define LOCALE setlocale(LC_ALL, "")
+#endif
+
+// --- COSTANTI ---
+#define MAZZOCARTE 40
+#define NUMEROCARTA 10
+#define MINGIOCATORI 2
+#define MAXGIOCATORI 20
+#define PUNTIVITA 2
+
+// --- UTILITY ---
+void pulisci() { system(CLEAR); } //pulisci lo schermo
+void delay(int ms) { SLEEP(ms); } // Funzione di delay in millisecond
+void locale() { LOCALE; }
+
+// --- STRUTTURE DATI ---
+// Enums
+typedef enum { FIORI, CUORI, QUADRI, PICCHE } Seme;
+typedef enum { ASSO = 1, DUE, TRE, QUATTRO, CINQUE, SEI, SETTE, JACK, REGINA, RE } TipoCarta;
+typedef enum { NULLO, MAGIA, SUPPORTO, TRAPPOLA, LADRO } CategEffetto;
+
+// Dichiarazioni anticipate per strutture
+typedef struct Effetto Effetto;
+typedef struct Carta Carta;
+typedef struct Giocatore Giocatore;
+typedef struct StatoGioco StatoGioco;
+
+// Struttura Effetto
+typedef struct Effetto {
+    CategEffetto categoria;
+    void (*effetto)(int, int, struct StatoGioco); // Funzione effetto
+} Effetto;
+
+// Struttura Carta
+typedef struct Carta {
+    TipoCarta tipo;     // Tipo della carta (nome)
+    Seme seme;          // Seme della carta
+    int valore_carta;   // Valore effettivo della carta
+    Effetto* effetto;   // Puntatore all'effetto
+} Carta;
+
+// Struttura Giocatore
+typedef struct Giocatore {
+    char id[20];        // ID del giocatore
+    int punti_vita;     // Punti vita attuali
+    Carta mano[2];      // Carte in mano
+    Carta coperta;      // Carta coperta
+    Carta scoperta;     // Carta scoperta
+} Giocatore;
+
+// Struttura StatoGioco
+typedef struct StatoGioco {
+    int num_giocatori;                  // Numero di giocatori attivi
+    int punti_campo;                    // Punti vita lasciati in campo
+    Giocatore giocatori[MAXGIOCATORI];  // Array di giocatori
+    Carta mazzo[MAZZOCARTE];            // Mazzo di carte
+} StatoGioco;
+
+// Simboli per ogni seme (con puntatore a stringa wchar_t)
+const wchar_t* simboli_semi(Seme seme) {
+    switch (seme) {
+        case FIORI: return L"\u2663";  // ♣
+        case CUORI: return L"\u2665";  // ♥
+        case QUADRI: return L"\u2666"; // ♦
+        case PICCHE: return L"\u2660"; // ♠
+        default: return L"?";
+    }
+}
+
+const wchar_t* nomi_carta(TipoCarta tipo) {
+    switch (tipo) {
+        case ASSO: return L"A";
+        case JACK: return L"J";
+        case REGINA: return L"Q";
+        case RE: return L"K";
+        default: {
+            static wchar_t buffer[3];
+            swprintf(buffer, sizeof(buffer) / sizeof(buffer[0]), L"%d", tipo);
+            return buffer;
+        }
+    }
+}
+//test
+const wchar_t* descrizione_effetto(Effetto* effetto) {
+    switch (effetto->categoria) {
+        case MAGIA: return L"Scopre 1 carta avversaria";
+        case SUPPORTO: return L"Dona +1 Vita all'avversario";
+        case TRAPPOLA: return L"Perdi -1 Vita";
+        case LADRO: return L"Ruba i punti vita in campo";
+        case NULLO: return L"Nessun effetto";
+        default: return L"Sconosciuto";
+    }
+}
+
+// --- PROTOTIPI ---
+void attiva_effetto(Carta carta, StatoGioco* stato, int giocatore_corrente, int giocatore_target);
+void crea_mazzo(Carta mazzo[MAZZOCARTE]);
+void libera_mazzo(Carta mazzo[MAZZOCARTE]);
+void mescola_mazzo(Carta mazzo[MAZZOCARTE]);
+
+// --- IMPLEMENTAZIONE EFFETTI ---
+void effetto_nullo(int giocatore_corrente, int giocatore_target, StatoGioco* stato) {
+    printf("Non succede nulla.\n");
+}
+
+void effetto_scoperta(int giocatore_corrente, int giocatore_target, StatoGioco* stato) {
+    printf("Il giocatore %s forza il giocatore %s a scoprire la sua carta coperta.\n", 
+           stato->giocatori[giocatore_corrente].id, stato->giocatori[giocatore_target].id);
+}
+
+void effetto_vita(int giocatore_corrente, int giocatore_target, StatoGioco* stato) {
+    stato->giocatori[giocatore_target].punti_vita++;
+    printf("Il giocatore %s riceve 1 punto vita da %s.\n", 
+           stato->giocatori[giocatore_target].id, stato->giocatori[giocatore_corrente].id);
+}
+
+void effetto_vita2(int giocatore_corrente, int giocatore_target, StatoGioco* stato) {
+    stato->giocatori[giocatore_target +2].punti_vita++;
+    printf("Il giocatore %s dà 1 punto vita a %s.\n", 
+           stato->giocatori[giocatore_corrente].id, stato->giocatori[giocatore_target].id);
+}
+
+void effetto_trappola(int giocatore_corrente, int giocatore_target, StatoGioco* stato) {
+    stato->giocatori[giocatore_corrente].punti_vita--;
+    stato->punti_campo++;
+    printf("Il giocatore %s perde 1 punto vita. Punti sul campo: %d.\n", 
+           stato->giocatori[giocatore_corrente].id, stato->punti_campo);
+}
+
+void effetto_ladro(int giocatore_corrente, int giocatore_target, StatoGioco* stato) {
+    stato->giocatori[giocatore_corrente].punti_vita += stato->punti_campo;
+    stato->punti_campo = 0;
+    printf("Il giocatore %s ruba tutti i punti vita dal campo.\n", stato->giocatori[giocatore_corrente].id);
+}
+
+// --- CREAZIONE E GESTIONE DEL MAZZO ---
+void crea_mazzo(Carta mazzo[MAZZOCARTE]) {
+    int i = 0;
+    for (int s = FIORI; s <= PICCHE; s++) {
+        for (int t = ASSO; t <= RE; t++) {
+            mazzo[i].tipo = t;
+            mazzo[i].seme = s;
+            mazzo[i].valore_carta = t;
+            mazzo[i].effetto = malloc(sizeof(Effetto));
+            if (!mazzo[i].effetto) {
+                perror("Errore nell'allocazione di Effetto");
+                exit(EXIT_FAILURE);
+            }
+
+            switch (t) {
+                case SETTE:
+                    mazzo[i].effetto->categoria = MAGIA;
+                    mazzo[i].effetto->effetto = effetto_scoperta;
+                    break;
+                case JACK:
+                    mazzo[i].effetto->categoria = SUPPORTO;
+                    mazzo[i].effetto->effetto = effetto_vita;
+                    break;
+                case REGINA:
+                    mazzo[i].effetto->categoria  = SUPPORTO;
+                    mazzo[i].effetto->effetto = effetto_vita2;
+                    break;
+                case ASSO:
+                    mazzo[i].effetto->categoria = TRAPPOLA;
+                    mazzo[i].effetto->effetto = effetto_trappola;
+                    break;
+                case RE:
+                    mazzo[i].effetto->categoria = LADRO;
+                    mazzo[i].effetto->effetto = effetto_ladro;
+                    break;
+                default:
+                    mazzo[i].effetto->categoria = NULLO;
+                    mazzo[i].effetto->effetto = effetto_nullo;
+                    break;
+            }
+            i++;
+        }
+    }
+}
+
+void libera_mazzo(Carta mazzo[MAZZOCARTE]) {
+    for (int i = 0; i < MAZZOCARTE; i++) {
+        if (mazzo[i].effetto) {
+            free(mazzo[i].effetto);
+            mazzo[i].effetto = NULL;
+        }
+    }
+}
+
+void mostra_mazzo(Carta mazzo[MAZZOCARTE]) {
+    for (int i = 0; i < MAZZOCARTE; i++) {
+        wprintf(L"Carta: %ls %ls (valore: %d)\n",
+                nomi_carta(mazzo[i].tipo), simboli_semi(mazzo[i].seme), mazzo[i].valore_carta);
+        wprintf(L"Effetto: %ls\n", descrizione_effetto(mazzo[i].effetto));
+    }
+}
+
+// --- TESTER ---
+void stampa_mazzo() {
+    Carta mazzo[MAZZOCARTE];
+    crea_mazzo(mazzo);
+    mostra_mazzo(mazzo);
+    libera_mazzo(mazzo);
+}
+
+// --- MAIN ---
+int main() {
+    locale();
+    pulisci();
+    stampa_mazzo();
+    return 0;
+}
