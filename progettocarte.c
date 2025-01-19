@@ -16,6 +16,17 @@ struct carte {
 	const char *seme;
 };
 typedef struct carte Carte; // nuovo nome di tipo per struct carte
+//R. se mettessi: typedef struct carte {
+// .. } Carte; ?
+// R. creare una struct aggiuntiva per la logica del gioco forse
+/* tipo: 
+typedef struct {
+	int numero_giocatori;
+	int *punti_vita;
+	int fase;
+	//...
+} Game;
+*/
 
 // prototipi
 void new_mazzo(Carte * const Mazzo_iterato, const char * Array_numero_carta[], const char * Array_Seme[]);
@@ -26,14 +37,14 @@ int prossimo_giocatore (int turno_corrente, int punti_vita[], int numero_giocato
 void effetto_carte (const Carte carta, int giocatore_corrente, int numero_giocatori, int punti_vita[], int *punti_sul_campo);
 void fasi(Carte *const mazzo, int numero_giocatori, int punti_vita[], int *punti_sul_campo, Carte carte_scoperte[], const char *numero_carta[], const char *seme[]);
 
-int main(void)
+int main(void) //R. è più corretto lasciare il main 'libero'? Cioè io almeno mi trovo meglio nel chiamare nel main solo le funzioni necessarie
 {
     Carte *mazzo = malloc(MAZZOCARTE * sizeof(Carte));
     if(mazzo == NULL) {
         return 1;
     }
 
-// inizializza gli array di puntatori dei semi e del numero
+// inizializza gli array di puntatori dei semi e del numero 
 	const char *numero_carta[] = { "Asso", "Due", "Tre", "Quattro", "Cinque", "Sei", "Sette", "Jack", "Regina", "Re"};
 	const char *seme[] = {"Picche", "Quadri", "Cuori", "Fiori"};
 
@@ -76,8 +87,17 @@ int main(void)
         return 1;
     }
 
+
+    // controllo se ho abbastanza carte
+    if(numero_giocatori*2 > MAZZOCARTE) {
+        printf("Errore: non ci sono abbastanza carte!!");
+        free(mazzo);
+        return 1;
+    }
+
     distribuisci(mazzo, numero_giocatori, punti_vita, &punti_sul_campo, 1, carte_scoperte); // distribuisce le carte
 
+    fasi(mazzo, numero_giocatori, punti_vita, &punti_sul_campo, carte_scoperte, numero_carta, seme);  // inizia le fasi
     fasi(mazzo, numero_giocatori, punti_vita, &punti_sul_campo, carte_scoperte, numero_carta, seme);  // inizia le fasi
 
     free(mazzo);
@@ -101,6 +121,7 @@ void new_mazzo(Carte * const Mazzo_iterato, const char * Array_numero_carta[],
 		Mazzo_iterato[mazzo_nuovo].seme = Array_Seme[mazzo_nuovo / NUMEROCARTA];
 	}
 }
+//R. non ho capito cosa vuol dire quando controlli se il puntatore sta a NULL
 // mischia le carte
 void mischia_mazzo(Carte * const Mazzo_iterato)
 {
@@ -151,6 +172,7 @@ void distribuisci(const Carte * const Mazzo_iterato, int numero_giocatori, int p
     }
 }
 
+// R. per questa parte, visti i tanti if ed else, conviene forse usare il case w switch?
 // applica l'effetto delle carte
 void effetto_carte(const Carte carta, int giocatore_corrente, int numero_giocatori, int punti_vita[], int *punti_sul_campo)
 {
